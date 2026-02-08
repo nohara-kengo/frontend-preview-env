@@ -48,7 +48,7 @@ https://github.com/nohara-kengo/frontend-preview-env.git
 ![alt text](image-6.png)
 
 画面左上の「Current repository」が「frontend-preview-env」になっていれば完了です
-![alt text](image-7.png)
+![alt text](image-12.png)
 
 ## トラブルシューティング
 
