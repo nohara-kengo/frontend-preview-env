@@ -1,3 +1,4 @@
+// TODO→実際に環境構築してから作成する
 ## 1．拡張機能「Dev-Containers」、「WSL」をインストール
 
 VSCodeを起動し、以下の拡張機能をインストールします
@@ -13,13 +14,13 @@ PowerShellを開き、以下のコマンドを入力していきます
 Ubuntuを起動
 
 ```auto
-wsl -d Ubuntu2404-dk-ssec
+wsl -d Ubuntu2404-frontend-preview-env
 ```
 
 Ubuntu上にクローンしたリポジトリのディレクトリに移動する
 
 ```auto
-cd /home/comthink/git/nct-dk-ssec
+cd /home/comthink/git/frontend-preview-env
 ```
 
 VSCodeを起動
@@ -28,15 +29,18 @@ VSCodeを起動
 code .
 ```
 
-![image](019abed983a179778d25e97215205ac6/image.png)
+![image](image/vscode/vscode-image-03.png)
 
 VSCodeが起動したらCtrl＋Shift＋Pを押下し、コマンドパレットを開く
 
-「devcontainers」と入力して「キャッシュなしでコンテナをリビルド」を押下![image](019abed983a179778d25e97215205ac6/RebuildContainer.png)
+「devcontainers」と入力して「キャッシュなしでコンテナをリビルド」を押下
 
-コンテナのビルドが開始し、完了すると下記画面同様bc_PropertyManagementフォルダがワークスペースとして読み込まれる\
+![image](019abed983a179778d25e97215205ac6/RebuildContainer.png)
+
+コンテナのビルドが開始し、完了すると下記画面同様ワークスペースとして読み込まれる\
 ※ビルドには数分かかる\
 ※ビルドのログを表示した場合や、ターミナルを表示していなかった場合、Ctrl+Shift+@で表示する
+
 
 ![image](019abed983a179778d25e97215205ac6/image.png)
 

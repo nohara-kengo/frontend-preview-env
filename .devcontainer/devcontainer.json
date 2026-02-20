@@ -1,0 +1,9 @@
+{
+	"name": "Frontend Preview Env",
+	"build": {
+		"dockerfile": "../Dockerfile",
+		"context": ".."
+	},
+	"remoteUser": "root",
+	"forwardPorts": [3000, 5000, 8000, 8080]
+}
