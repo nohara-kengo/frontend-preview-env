@@ -39,9 +39,10 @@ RUN npm install -g aws-cdk
 # 作業ディレクトリを設定
 WORKDIR /workspace
 
-# 初期化スクリプトをコピー
+# 初期化スクリプトをコピーして権限を設定
 COPY entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh && \
+    chmod 644 /workspace/../../../home/comthink/git/frontend-preview-env/entrypoint.sh 2>/dev/null || true
 
 # entrypoint を設定
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

@@ -33,12 +33,16 @@ else
     echo "✓ CDK project found"
 fi
 
-# React プロジェクトの初期化チェック
-if [ ! -f /workspace/package.json ]; then
-    echo "⚠ React project not initialized."
-    echo "  Run: npm create vite@latest app -- --template react"
+# React + Vite プロジェクトの確認
+if [ -d /workspace/app ] && [ -f /workspace/app/package.json ]; then
+    echo "✓ React + Vite project found"
+    echo "  Installing dependencies..."
+    cd /workspace/app
+    npm install --quiet
+    echo "✓ Dependencies installed"
+    cd /workspace
 else
-    echo "✓ React project found"
+    echo "⚠ React + Vite project not found at /workspace/app"
 fi
 
 echo ""
