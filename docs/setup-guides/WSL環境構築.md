@@ -7,7 +7,7 @@
 Get-AppxPackage -Name "*WindowsSubsystemForLinux*"
 ```
 
-![alt text](image/image-1.png)
+![alt text](image/wsl/wsl-image-01.png)
 
 「Version」が2.4以下、もしくは実行結果が出力されない場合、下記コマンドを入力して最新のWSLをインストールします
 
@@ -29,7 +29,7 @@ Ubuntuを指定してインストールします
 wsl --install -d Ubuntu-24.04 --name Ubuntu2404-frontend-preview-env
 ```
 
-![alt text](image/image.png)
+![alt text](image/wsl/wsl-image-02.png)
 
 
 ## 4. Ubuntuのユーザーを作成
@@ -42,7 +42,7 @@ wsl --install -d Ubuntu-24.04 --name Ubuntu2404-frontend-preview-env
 * ユーザー名：comthink
 * パスワード：comthink
 
-![alt text](image/image-2.png)
+![alt text](image/wsl/wsl-image-03.png)
 
 ## トラブルシューティング
 

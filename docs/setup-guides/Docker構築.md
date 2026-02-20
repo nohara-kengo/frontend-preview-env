@@ -4,24 +4,26 @@
 
 上記サイトでAMD64版をインストールします
 
-![alt text](image/image-4.png)
+![alt text](image/docker/docker-image-01.png)
 
 ダウンロードしたインストーラを立ち上げ、デフォルトのチェックのままOKを押下しインストール
 
-![alt text](image/image-5.png)
+![alt text](image/docker/docker-image-02.png)
+
 インストール完了
 
-![alt text](image/image-6.png)
+![alt text](image/docker/docker-image-03.png)
+
 アカウントはスキップボタンで作成をスキップ
 
-![alt text](image/image-7.png)
+![alt text](image/docker/docker-image-04.png)
 
 2．WSL Integrationの設定
 
 ヘッダーの歯車→Resources→WSL Integrationタブに移動→\
 Ubuntu2404-frontend-preview-envのトグルをONにする→画面右下「Apply＆Restart」を押下しDockerを再起動
 
-![alt text](image/image-8.png)
+![alt text](image/docker/docker-image-05.png)
 
 ## 3．インストールと設定の確認
 
@@ -33,7 +35,7 @@ Powershellを開く
 wsl -d Ubuntu2404-frontend-preview-env
 ```
 
-![alt text](image/image-9.png)
+![alt text](image/docker/docker-image-06.png)
 
 
 docker --versionでUbuntuにDockerがインストールされていることを確認
@@ -42,7 +44,7 @@ docker --versionでUbuntuにDockerがインストールされていることを�
 docker --version
 ```
 
-![alt text](image/image-10.png)
+![alt text](image/docker/docker-image-07.png)
 
 
 バージョンが表示されればDockerの準備は完了

@@ -10,20 +10,20 @@
 
 GitHub Desktopを開き、画面左上の「File」タブからOptionsを押下します
 
-![alt text](image-3.png)
+![alt text](image/github/github-image-01.png)
 
 「Accounts」に自分のアカウントが表示されていればログインできています。
-![alt text](image.png)
+![alt text](image/github/github-image-02.png)
 
 下の画面であれば「Sign into [GitHub.com](http://GitHub.com)」を押下してログイン操作を行ってください
 
-![alt text](image-1.png)
+![alt text](image/github/github-image-03.png)
 
 ## 2.GitHub Desktopでリポジトリのクローンを作成する
 
 Fileタブから、Clone Repositoryを選択します
 
-![alt text](image-2.png)
+![alt text](image/github/github-image-04.png)
 
 「URL」タブからを選択し、「URL」と「Local Path」の欄は下記のパスをコピーして書き換え、「Clone」ボタンを押下します。
 
@@ -37,18 +37,18 @@ https://github.com/nohara-kengo/frontend-preview-env.git
 \\wsl.localhost\Ubuntu2404-frontend-preview-env\home\comthink\git\frontend-preview-env
 ```
 
-![alt text](image-4.png)
+![alt text](image/github/github-image-05.png)
 
 クローンが開始します
 
-![alt text](image-5.png)
+![alt text](image/github/github-image-06.png)
 
 下記画像のメッセージが出たら、「Trust Repository」を押します
 
-![alt text](image-6.png)
+![alt text](image/github/github-image-07.png)
 
 画面左上の「Current repository」が「frontend-preview-env」になっていれば完了です
-![alt text](image-12.png)
+![alt text](image/github/github-image-08.png)
 
 ## トラブルシューティング
 
@@ -67,7 +67,7 @@ https://github.com/nohara-kengo/frontend-preview-env.git
 wsl -d Ubuntu2404-frontend-preview-env
 ```
 
-![alt text](image-8.png)
+![alt text](image/github/github-image-09.png)
 
 
 **3. .gitがあるディレクトリに移動**
@@ -76,7 +76,7 @@ wsl -d Ubuntu2404-frontend-preview-env
 cd  /home/comthink
 ```
 
-![alt text](image-9.png)
+![alt text](image/github/github-image-10.png)
 
 
 **4. .git配下のファイル/ディレクトリの所有者を「comthink」に変更する**
@@ -87,7 +87,7 @@ cd  /home/comthink
 sudo chown -R comthink:comthink git
 ```
 
-![alt text](image-10.png)
+![alt text](image/github/github-image-11.png)
 
 
 下記確認用コマンドで、.gitの所有者がcomthinkになっていればWindowsからgit操作が可能です。
@@ -96,5 +96,5 @@ sudo chown -R comthink:comthink git
 ls -l
 ```
 
-![alt text](image-11.png)
+![alt text](image/github/github-image-12.png)
 
