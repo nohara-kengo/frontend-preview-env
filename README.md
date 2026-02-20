@@ -57,6 +57,74 @@ sequenceDiagram
 - 以降の更新: `npm run build` → S3へアップロード（CloudFrontが配信）
 - 必要時: CloudFrontのキャッシュ失効（`/*` など）
 
+## クイックスタート
+
+### 前提条件
+- Docker
+- AWS アカウント＆クレデンシャル
+
+### セットアップ手順
+
+#### 1. リポジトリのクローン
+```bash
+git clone <this-repo>
+cd frontend-preview-env
+```
+
+#### 2. Docker コンテナの起動
+```bash
+# docker-compose を使用
+docker-compose up -d
+
+# または devcontainer（VS Code）で開く
+code .
+```
+
+#### 3. プロジェクトの初期化
+```bash
+chmod +x init.sh
+./init.sh
+```
+
+#### 4. AWS 認証情報の設定
+```bash
+# .env.example を参考に .env を編集
+cp .env.example .env
+# エディタで AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY を修正
+```
+
+#### 5. CDK スタックの確認・デプロイ
+```bash
+cdk synth        # CloudFormation テンプレートを生成
+cdk diff         # 変更内容を確認
+cdk deploy       # AWS へデプロイ
+```
+
+#### 6. React アプリのビルド＆デプロイ
+```bash
+cd app
+npm run build    # ビルド成果物を dist/ に生成
+# S3 へのアップロードスクリプトを実行
+```
+
+## ファイル構成
+
+```
+frontend-preview-env/
+├── Dockerfile                  # Docker イメージ定義
+├── docker-compose.yml         # Docker Compose 設定
+├── entrypoint.sh              # コンテナ起動時の初期化スクリプト
+├── init.sh                    # プロジェクト初期化スクリプト
+├── requirements.txt           # Python 依存パッケージ
+├── .env.example               # 環境変数テンプレート
+├── .gitignore                 # Git 無視ファイル設定
+├── README.md                  # このファイル
+├── docs/                      # ドキュメント
+│   └── setup-guides/          # セットアップガイド
+├── cdk/                       # AWS CDK スタック（初期化後に作成）
+└── app/                       # React アプリケーション（初期化後に作成）
+```
+
 ## リポジトリの位置づけ
 完成を目的としない検証用。チーム展開・改善議論のベースとする。
 

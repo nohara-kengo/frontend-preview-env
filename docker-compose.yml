@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  frontend-preview-env:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: frontend-preview-env
+    
+    # ポートマッピング
+    ports:
+      - "3000:3000"   # React dev server
+      - "5000:5000"   # Python Flask/FastAPI
+      - "8000:8000"   # Python (Django, etc.)
+      - "8080:8080"   # Other services
+    
+    # ボリュームマウント
+    volumes:
+      - .:/workspace
+      - node_modules:/workspace/node_modules
+    
+    # 環境変数ファイルを読み込み
+    env_file:
+      - .env
+    
+    # 環境変数の設定
+    environment:
+      - AWS_REGION=${AWS_REGION:-ap-northeast-1}
+      - NODE_ENV=development
+    
+    # Docker実行時の設定
+    stdin_open: true
+    tty: true
+    
+    # 作業ディレクトリ
+    working_dir: /workspace
+
+volumes:
+  node_modules:
