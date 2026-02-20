@@ -16,6 +16,27 @@ else
     echo "  Create .env from .env.example to configure AWS credentials."
 fi
 
+# LocalStack ヘルスチェック（10秒待機）
+echo ""
+echo "⏳ Waiting for LocalStack to be ready..."
+for i in {1..30}; do
+    if curl -s http://localstack:4566/_localstack/health | grep -q "running"; then
+        echo "✓ LocalStack is ready"
+        break
+    fi
+    echo "  Attempt $i/30..."
+    sleep 1
+    if [ $i -eq 30 ]; then
+        echo "⚠ LocalStack health check timed out (will proceed anyway)"
+    fi
+done
+
+# S3 セットアップスクリプト
+echo ""
+echo "Note: S3 buckets can be created manually with:"
+echo "  python3 setup_s3.py"
+echo ""
+
 # バージョン情報を表示
 echo ""
 echo "Environment Info:"
@@ -23,6 +44,7 @@ echo "  Node.js: $(node --version)"
 echo "  npm: $(npm --version)"
 echo "  Python: $(python3 --version)"
 echo "  AWS CDK: $(cdk --version 2>/dev/null || echo 'Not initialized')"
+echo "  AWS CLI: $(aws --version 2>/dev/null || echo 'Not installed')"
 echo ""
 
 # CDKプロジェクトの初期化チェック

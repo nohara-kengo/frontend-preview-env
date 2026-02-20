@@ -2,7 +2,7 @@
 FROM public.ecr.aws/amazonlinux/amazonlinux:2023
 
 # 基本パッケージのインストール
-RUN yum update -y && \
+RUN yum update -y --allowerasing && \
     yum install --allowerasing -y \
     python3 \
     python3-pip \
@@ -19,6 +19,7 @@ RUN yum update -y && \
     findutils \
     diffutils \
     xz \
+    unzip \
     && yum clean all
 
 # Node.js/npm のバージョン確認
@@ -33,16 +34,18 @@ COPY requirements.txt /tmp/
 RUN pip install --upgrade pip && \
     pip install -r /tmp/requirements.txt
 
-# AWS CDK CLI のインストール
-RUN npm install -g aws-cdk
+# AWS CLI v2 のインストール
+RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+    unzip -q awscliv2.zip && \
+    ./aws/install && \
+    rm -rf awscliv2.zip aws
 
 # 作業ディレクトリを設定
 WORKDIR /workspace
 
 # 初期化スクリプトをコピーして権限を設定
 COPY entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/entrypoint.sh && \
-    chmod 644 /workspace/../../../home/comthink/git/frontend-preview-env/entrypoint.sh 2>/dev/null || true
+RUN chmod +x /usr/local/bin/entrypoint.sh
 
 # entrypoint を設定
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

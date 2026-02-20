@@ -80,31 +80,29 @@ docker-compose up -d
 code .
 ```
 
-#### 3. プロジェクトの初期化
+#### 3. 依存パッケージのインストール
 ```bash
-chmod +x init.sh
-./init.sh
+# Pythonの依存パッケージをインストール
+pip install -r requirements.txt
+
+# React アプリの依存パッケージをインストール
+cd app
+npm install
+cd ..
 ```
 
 #### 4. AWS 認証情報の設定
 ```bash
-# .env.example を参考に .env を編集
-cp .env.example .env
-# エディタで AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY を修正
+# AWS認証情報を環境変数で設定
+export AWS_ACCESS_KEY_ID=your_access_key
+export AWS_SECRET_ACCESS_KEY=your_secret_key
+export AWS_REGION=your_region
 ```
 
-#### 5. CDK スタックの確認・デプロイ
-```bash
-cdk synth        # CloudFormation テンプレートを生成
-cdk diff         # 変更内容を確認
-cdk deploy       # AWS へデプロイ
-```
-
-#### 6. React アプリのビルド＆デプロイ
+#### 5. React アプリのビルド
 ```bash
 cd app
 npm run build    # ビルド成果物を dist/ に生成
-# S3 へのアップロードスクリプトを実行
 ```
 
 ## ファイル構成
@@ -114,28 +112,37 @@ frontend-preview-env/
 ├── Dockerfile                  # Docker イメージ定義
 ├── docker-compose.yml         # Docker Compose 設定
 ├── entrypoint.sh              # コンテナ起動時の初期化スクリプト
-├── init.sh                    # プロジェクト初期化スクリプト
 ├── requirements.txt           # Python 依存パッケージ
-├── .env.example               # 環境変数テンプレート
-├── .gitignore                 # Git 無視ファイル設定
 ├── README.md                  # このファイル
 ├── docs/                      # ドキュメント
 │   └── setup-guides/          # セットアップガイド
-├── cdk/                       # AWS CDK スタック（初期化後に作成）
-└── app/                       # React アプリケーション（初期化後に作成）
+│       ├── Docker構築.md
+│       ├── GitHub Desktop.md
+│       ├── VS Code構築.md
+│       ├── WSL環境構築.md
+│       └── image/             # セットアップガイド用の画像
+└── app/                       # React アプリケーション
+    ├── package.json           # npm パッケージ定義
+    ├── vite.config.js         # Vite ビルド設定
+    ├── index.html             # HTML エントリーポイント
+    ├── src/
+    │   ├── App.jsx            # App コンポーネント
+    │   ├── App.css            # スタイル定義
+    │   ├── main.jsx           # メインエントリーポイント
+    │   └── index.css          # グローバルスタイル
+    └── dist/                  # ビルド成果物（npm run build 後に生成）
 ```
 
 ## リポジトリの位置づけ
 完成を目的としない検証用。チーム展開・改善議論のベースとする。
 
-### 環境構築フォルダ
-- [infra](infra): CDKによるS3+CloudFrontの一時プレビュー環境
-- [scripts](scripts/README.md): Reactビルド成果物のS3同期とCloudFront失効
-- [setup-guides](docs/setup-guides): WSL/Dockerのセットアップ手順
+このリポジトリは以下のコンポーネントで構成されています：
+- **app/**: Reactアプリケーション（ViteでビルドするSPA）
+- **docs/setup-guides/**: Docker、WSL、GitHub Desktop、VS Codeのセットアップガイド
 
-## 技術スタック（予定）
-- React（静的build）
-- AWS S3
-- AWS CloudFront
-- AWS CDK（Python）
-- AWS SDK（boto3）
+## 技術スタック
+- **React** - UIフレームワーク
+- **Vite** - フロントエンドビルドツール
+- **Docker** - コンテナ化と環境統一
+- **AWS S3** - 静的ホスティング
+- **AWS CloudFront** - CDN配信
