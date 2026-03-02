@@ -1,0 +1,223 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Frontend Preview Environment - CloudFormation Stack for S3 + CloudFront with OAC'
+
+# ===========================
+# パラメータ定義
+# CloudFormation スタック作成時に AWS コンソールから入力
+# ===========================
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: S3 バケット名（Reactビルドファイルを保存）
+    AllowedPattern: "^[a-z0-9-]+$"
+    ConstraintDescription: 小文字、数字、ハイフンのみ使用可。例：frontend-preview-bucket
+    # 例）41th-test-bucket
+
+  DistributionComment:
+    Type: String
+    Description: CloudFront ディストリビューションのコメント（識別用）
+    Default: Frontend Preview Distribution
+    # AWS コンソールで管理画面に表示される説明
+
+  DefaultTTL:
+    Type: Number
+    Description: |
+      CloudFront キャッシュの有効期限（秒）
+      デフォルト 86400秒 = 1日
+      新しいコンテンツを反映させたい場合は小さい値を設定
+      例：3600秒（1時間）、300秒（5分）
+    Default: 86400
+    MinValue: 0
+    MaxValue: 31536000
+    # MaxTTL（最大キャッシュ期限）は 31536000秒 = 1年
+
+Resources:
+  # ===========================
+  # 1. S3 バケット
+  # ===========================
+  # 用途：Vite ビルド出力（index.html, JS, CSS等）を保存
+  # セキュリティ：CloudFront 経由のみアクセス可能（直接 S3 URL では 403 エラー）
+  # バージョニング：有効化（上書き時に履歴保存）
+  FrontendS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref S3BucketName
+      
+      # バージョニング有効化：前のバージョンを保持、ロールバック可能
+      VersioningConfiguration:
+        Status: Enabled
+      
+      # PublicAccessBlockConfiguration：社外からの直接アクセス禁止
+      # 全て false = ポリシーベースで制御（CloudFront のみアクセス許可）
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false              # パブリック ACL をブロックしない
+        IgnorePublicAcls: false             # 既存パブリック ACL を無視しない
+        BlockPublicPolicy: false            # パブリックポリシーをブロックしない
+        RestrictPublicBuckets: false        # バケットレベルの登録簿を制限しない
+      
+      Tags:
+        - Key: Name
+          Value: frontend-preview
+        - Key: Environment
+          Value: preview
+
+  # ===========================
+  # 2. Origin Access Control (OAC)
+  # ===========================
+  # 用途：CloudFront から S3 へのセキュアなアクセス制御
+  # 従来の OAI（Origin Access Identity）より新しい方式
+  # 特徴：
+  #   - sigv4 署名（AWS Signature Version 4）で書名
+  #   - S3 レイヤーで認証（IAM ベース）
+  #   - CloudFront 分散キー署名に対応
+  OriginAccessControl:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${S3BucketName}-oac'
+        OriginAccessControlOriginType: s3                      # S3 オリジン用
+        SigningBehavior: always                                # 常にリクエストに署名
+        SigningProtocol: sigv4                                 # AWS Signature Version 4
+        Description: !Sub 'OAC for ${S3BucketName} frontend preview'
+
+  # ===========================
+  # 3. S3 バケットポリシー
+  # ===========================
+  # 用途：CloudFront ディストリビューションのみアクセス許可
+  # セキュリティ：
+  #   - AWS コンソール直接アクセス禁止（IAM ユーザーでも接続不可）
+  #   - AWS CLI でも s3:GetObject 実行不可
+  #   - CloudFront 分散 ID と OAC を条件に制限
+  FrontendS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendS3Bucket
+      PolicyText:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AllowCloudFrontOACAccess
+            Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com                # CloudFront サービスのみ許可
+            Action: s3:GetObject                               # ファイル読み取り許可（アップロード/削除は不可）
+            Resource: !Sub 'arn:aws:s3:::${S3BucketName}/*'
+            Condition:
+              StringEquals:
+                # このディストリビューション ID 経由のアクセスのみ許可
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
+  # ===========================
+  # 4. CloudFront ディストリビューション
+  # ===========================
+  # 用途：グローバル CDN で React SPA を配信
+  # ネットワーク：世界中 600+ エッジロケーション
+  # プロトコル：HTTPS 必須、HTTP 自動リダイレクト
+  # キャッシュ：DefaultTTL（パラメータで制御可能）
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true                                          # ディストリビューション有効
+        Comment: !Ref DistributionComment
+        DefaultRootObject: index.html                          # ルートリクエスト時に返すファイル
+        HttpVersion: http2and3                                 # HTTP/2 + HTTP/3（QUIC）対応
+        PriceClass: PriceClass_All                             # すべてのエッジロケーションを使用
+
+        # Origin（S3）の設定
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendS3Bucket.RegionalDomainName  # S3 リージョナルドメイン
+            OriginPath: /frontend                              # S3 内の仮想パス（s3://bucket/frontend/）
+            OriginAccessControlId: !Ref OriginAccessControl    # OAC で署名付きリクエスト
+            S3OriginConfig: {}                                 # S3オリジン用（空で OK）
+
+        # キャッシュ動作（デフォルト）
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET                                              # ファイル読み取り
+            - HEAD                                             # メタデータ取得
+            - OPTIONS                                          # CORS プリフライト対応
+          CachedMethods:
+            - GET                                              # GET をキャッシュ
+            - HEAD
+          Compress: true                                       # gzip/brotli 自動圧縮
+          ViewerProtocolPolicy: redirect-to-https              # HTTP → HTTPS 自動リダイレクト
+          TargetOriginId: S3Origin
+          ForwardedValues:
+            QueryString: false                                 # クエリ文字列でキャッシュ分岐しない
+            Cookies:
+              Forward: none                                    # Cookie をオリジンに転送しない
+            Headers:
+              - Accept                                         # Accept ヘッダ（MIME タイプ交渉用）
+              - Accept-Charset                                 # Accept-Charset ヘッダ
+              - Accept-Encoding                                # Accept-Encoding ヘッダ（圧縮形式）
+              - Accept-Language                                # Accept-Language ヘッダ（言語交渉用）
+          MinTTL: 0                                            # 最小キャッシュ期限（0秒 = キャッシュしない選択肢）
+          DefaultTTL: !Ref DefaultTTL                          # デフォルトキャッシュ期限（パラメータで制御）
+          MaxTTL: 31536000                                     # 最大キャッシュ期限（1年）
+
+        # カスタムエラーレスポンス（SPA ルーティング対応）
+        # React Router など SPA ライブラリで独自ルーティングする場合、
+        # 存在しないパス（例：/user/profile）にアクセスすると 404 になる。
+        # その際 index.html を返すことで React 側でルーティング処理させる。
+        CustomErrorResponses:
+          - ErrorCode: 403                                     # 403 Forbidden（権限なし）
+            ResponseCode: 200                                  # HTTP 200 OK で応答
+            ResponsePagePath: /index.html                      # React アプリ本体を返す
+          - ErrorCode: 404                                     # 404 Not Found（ファイルなし）
+            ResponseCode: 200                                  # HTTP 200 OK で応答
+            ResponsePagePath: /index.html                      # React アプリ本体を返す
+
+      Tags:
+        - Key: Name
+          Value: frontend-preview
+        - Key: Environment
+          Value: preview
+
+Outputs:
+  # ===========================
+  # スタック作成後に AWS コンソール "出力" タブに表示される値
+  # スクリプトから参照可能（他スタックとの依存関係作成に利用）
+  # ===========================
+  
+  S3BucketName:
+    Description: S3 バケット名（deploy.py でアップロード先として使用）
+    Value: !Ref FrontendS3Bucket
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketName'
+
+  S3BucketArn:
+    Description: S3 バケット ARN（IAM ポリシー、Lambda など他リソースで参照時に使用）
+    Value: !GetAtt FrontendS3Bucket.Arn
+    Export:
+      Name: !Sub '${AWS::StackName}-BucketArn'
+
+  OriginAccessControlId:
+    Description: Origin Access Control ID（CloudFront 再設定時に参照）
+    Value: !Ref OriginAccessControl
+    Export:
+      Name: !Sub '${AWS::StackName}-OACId'
+
+  CloudFrontDistributionId:
+    Description: CloudFront ディストリビューション ID（キャッシュ無効化時に使用）
+    Value: !Ref CloudFrontDistribution
+    Export:
+      Name: !Sub '${AWS::StackName}-DistributionId'
+    # 用途：新コンテンツ公開時にキャッシュをクリア
+    # コマンド例：aws cloudfront create-invalidation --distribution-id <この値> --paths "/*"
+
+  CloudFrontDomainName:
+    Description: CloudFront ドメイン名（自動生成、AWS で発行）
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: !Sub '${AWS::StackName}-DomainName'
+    # 例：d123xyz.cloudfront.net
+    # これに CNAME（Route 53）を紐付け、独自ドメイン化も可能
+
+  CloudFrontUrl:
+    Description: フrontend アクセス URL（ユーザーに共有するリンク）
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+    Export:
+      Name: !Sub '${AWS::StackName}-Url'
+    # 用途：Slack、メール等でチームと共有
+    # 例：https://d123xyz.cloudfront.net

@@ -98,6 +98,22 @@ def create_cloudfront_distribution():
             region_name=AWS_REGION
         )
         
+        # OAC（Origin Access Control）を作成
+        logger.info("Origin Access Control (OAC) を作成中...")
+        oac_config = {
+            'Name': f'{S3_BUCKET_NAME}-oac',
+            'Description': f'OAC for {S3_BUCKET_NAME}',
+            'OriginAccessControlOriginType': 's3',
+            'SigningBehavior': 'always',
+            'SigningProtocol': 'sigv4'
+        }
+        
+        oac_response = cloudfront_client.create_origin_access_control(
+            OriginAccessControlConfig=oac_config
+        )
+        oac_id = oac_response['OriginAccessControl']['Id']
+        logger.info(f"✓ OAC を作成しました (ID: {oac_id})")
+        
         # S3 Origin Domain Name を構築
         s3_origin_domain = f"{S3_BUCKET_NAME}.s3.{AWS_REGION}.amazonaws.com"
         logger.info(f"S3 Origin Domain: {s3_origin_domain}")
@@ -106,22 +122,24 @@ def create_cloudfront_distribution():
         distribution_config = {
             'CallerReference': f"frontend-preview-{int(__import__('time').time())}",
             'Comment': CLOUDFRONT_DISTRIBUTION_NAME,
-            'DefaultRootObject': 'frontend/index.html',
+            'DefaultRootObject': 'index.html',
             'Origins': {
                 'Quantity': 1,
                 'Items': [
                     {
                         'Id': f'{S3_BUCKET_NAME}-origin',
                         'DomainName': s3_origin_domain,
+                        'OriginPath': '/frontend',
                         'S3OriginConfig': {
                             'OriginAccessIdentity': ''
-                        }
+                        },
+                        'OriginAccessControlId': oac_id
                     }
                 ]
             },
             'DefaultCacheBehavior': {
                 'TargetOriginId': f'{S3_BUCKET_NAME}-origin',
-                'ViewerProtocolPolicy': 'allow-all',
+                'ViewerProtocolPolicy': 'redirect-to-https',
                 'TrustedSigners': {
                     'Enabled': False,
                     'Quantity': 0
@@ -154,7 +172,8 @@ def create_cloudfront_distribution():
         
         return {
             'distribution_id': distribution_id,
-            'domain_name': domain_name
+            'domain_name': domain_name,
+            'oac_id': oac_id
         }
         
     except ClientError as e:
@@ -167,8 +186,8 @@ def create_cloudfront_distribution():
         sys.exit(1)
 
 
-def set_s3_bucket_policy(cloudfront_id):
-    """S3バケットポリシーを設定してCloudFrontからのアクセスを許可"""
+def set_s3_bucket_policy(cloudfront_info):
+    """S3バケットポリシーを設定してCloudFrontからのアクセスのみを許可"""
     try:
         logger.info("=== S3バケットポリシー設定開始 ===")
         
@@ -192,16 +211,23 @@ def set_s3_bucket_policy(cloudfront_id):
         )
         logger.info("✓ Block Public Access を無効化しました")
         
-        # S3バケットポリシーを設定
+        # OACを使用したS3バケットポリシーを設定（パブリックアクセス不許可）
         bucket_policy = {
             "Version": "2012-10-17",
             "Statement": [
                 {
-                    "Sid": "AllowCloudFrontAccess",
+                    "Sid": "AllowCloudFrontOACAccess",
                     "Effect": "Allow",
-                    "Principal": "*",
+                    "Principal": {
+                        "Service": "cloudfront.amazonaws.com"
+                    },
                     "Action": "s3:GetObject",
-                    "Resource": f"arn:aws:s3:::{S3_BUCKET_NAME}/*"
+                    "Resource": f"arn:aws:s3:::{S3_BUCKET_NAME}/*",
+                    "Condition": {
+                        "StringEquals": {
+                            "AWS:SourceArn": f"arn:aws:cloudfront::{get_aws_account_id()}:distribution/{cloudfront_info['distribution_id']}"
+                        }
+                    }
                 }
             ]
         }
@@ -213,7 +239,8 @@ def set_s3_bucket_policy(cloudfront_id):
             Policy=json.dumps(bucket_policy)
         )
         
-        logger.info("✓ S3バケットポリシーを設定しました")
+        logger.info("✓ S3バケットポリシーを設定しました（CloudFront経由のみ許可）")
+        logger.info("✓ セキュリティベストプラクティス: OAC有効化完了")
         logger.info("=== S3バケットポリシー設定完了 ===")
         
     except ClientError as e:
@@ -223,6 +250,22 @@ def set_s3_bucket_policy(cloudfront_id):
         sys.exit(1)
     except Exception as e:
         logger.error(f"✗ 予期しないエラーが発生しました: {e}", exc_info=True)
+        sys.exit(1)
+
+
+def get_aws_account_id():
+    """AWSアカウントIDを取得"""
+    try:
+        sts_client = boto3.client(
+            'sts',
+            aws_access_key_id=AWS_ACCESS_KEY_ID,
+            aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+            region_name=AWS_REGION
+        )
+        account_id = sts_client.get_caller_identity()["Account"]
+        return account_id
+    except Exception as e:
+        logger.error(f"✗ アカウントID取得エラー: {e}")
         sys.exit(1)
 
 
@@ -328,10 +371,11 @@ if __name__ == '__main__':
     create_s3_bucket()
     build_and_upload_react_app()
     cf_info = create_cloudfront_distribution()
-    set_s3_bucket_policy(cf_info['distribution_id'])
+    set_s3_bucket_policy(cf_info)
     logger.info(f"\n{'='*50}")
     logger.info(f"✅ セットアップ完了！")
     logger.info(f"{'='*50}")
     logger.info(f"🌐 アクセスURL: https://{cf_info['domain_name']}")
+    logger.info(f"🔒 セキュリティ: OAC有効化 (CloudFront経由のみアクセス可)")
     logger.info(f"⏳ デプロイ完了まで15分～数時間かかる場合があります")
     logger.info(f"{'='*50}")
