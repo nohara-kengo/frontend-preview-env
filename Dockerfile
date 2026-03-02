@@ -43,12 +43,13 @@ RUN curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2
 # 作業ディレクトリを設定
 WORKDIR /workspace
 
-# 初期化スクリプトをコピーして権限を設定
-COPY entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/entrypoint.sh
+# アプリケーションコードをコピー
+COPY app /workspace/app
+COPY scripts /workspace/scripts
+COPY config.py requirements.txt /workspace/
 
-# entrypoint を設定
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+# app ディレクトリの npm 依存関係をインストール
+RUN cd /workspace/app && npm install
 
 # デフォルトシェルを設定
 CMD ["/bin/bash"]
