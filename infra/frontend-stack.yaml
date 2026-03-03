@@ -92,7 +92,7 @@ Resources:
     Type: AWS::S3::BucketPolicy
     Properties:
       Bucket: !Ref FrontendS3Bucket
-      PolicyText:
+      PolicyDocument:
         Version: '2012-10-17'
         Statement:
           - Sid: AllowCloudFrontOACAccess
