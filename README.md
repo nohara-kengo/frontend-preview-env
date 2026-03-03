@@ -208,7 +208,6 @@ frontend-preview-env/
 | 1 | **CI/CD の実装（React ビルド）** | GitHub Actions 等を使い、Reactのビルド〜S3アップロードを自動化する（Terraform の apply は `.github/workflows/` 実装済み） |
 | 2 | **Terraform バックエンドの事前構築** | `infra/envs/preview/backend.conf` の S3 バケット・DynamoDB テーブルを実環境に合わせて作成・設定する |
 | 3 | **GitHub Actions OIDC 設定** | AWS IAM に GitHub Actions 用 OIDC プロバイダーとロールを作成し、リポジトリの Secrets に `AWS_ROLE_ARN` を登録する |
-| 4 | **root 所有ディレクトリの削除** | `sudo rm -rf infra_cloudformation/` で不要なディレクトリを削除する |
 
 ---
 
