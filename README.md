@@ -120,5 +120,14 @@ frontend-preview-env/
 - **AWS CloudFront** - CDN配信
 - **AWS CloudFormation** - インフラのコード化（IaC）
 
+## 残件・今後の課題
+
+| # | 内容 | 概要 |
+|---|---|---|
+| 1 | **CI/CD の実装** | GitHub Actions 等を使い、Reactのビルド〜S3アップロードを自動化する |
+| 2 | **Terraform での構築** | CloudFormation の代わりに Terraform でインフラをコード化し、構築・削除を管理する |
+
+---
+
 ## リポジトリの位置づけ
 完成を目的としない検証用。チーム展開・改善議論のベースとする。
