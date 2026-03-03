@@ -33,6 +33,14 @@ cdk.out/
 .cdktf/
 terraform/
 
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+*.tfstate.*.backup
+.terraform.lock.hcl
+*.tfvars.local
+
 # Build outputs
 *.out
 dist/

@@ -1,0 +1,91 @@
+name: Terraform Plan
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "infra/**"
+
+# OIDC でトークンを取得するために必要な権限
+permissions:
+  id-token: write       # OIDC JWT トークン発行
+  contents: read        # リポジトリ読み取り
+  pull-requests: write  # PR へのコメント投稿
+
+jobs:
+  plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-northeast-1
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "~> 1.9"
+
+      - name: Terraform Format Check
+        id: fmt
+        run: ./run.sh infra preview fmt-check
+        continue-on-error: true
+
+      - name: Terraform Validate
+        id: validate
+        run: ./run.sh infra preview validate
+
+      - name: Terraform Plan
+        id: plan
+        run: |
+          ./run.sh infra preview plan 2>&1 | tee /tmp/plan_output.txt
+          echo "exitcode=${PIPESTATUS[0]}" >> "$GITHUB_OUTPUT"
+        continue-on-error: true
+
+      - name: Post Plan to PR
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const planOutput = fs.readFileSync('/tmp/plan_output.txt', 'utf8');
+            const truncated = planOutput.length > 60000
+              ? planOutput.slice(0, 60000) + '\n\n... (出力が長いため省略されました)'
+              : planOutput;
+
+            const fmtStatus = '${{ steps.fmt.outcome }}' === 'success' ? '✅' : '❌';
+            const validateStatus = '${{ steps.validate.outcome }}' === 'success' ? '✅' : '❌';
+            const planStatus = '${{ steps.plan.outcome }}' === 'success' ? '✅' : '❌';
+
+            const body = [
+              '## Terraform Plan',
+              '',
+              `| ステップ | 結果 |`,
+              `|---|---|`,
+              `| Format Check | ${fmtStatus} |`,
+              `| Validate | ${validateStatus} |`,
+              `| Plan | ${planStatus} |`,
+              '',
+              '<details><summary>Plan 詳細を表示</summary>',
+              '',
+              '```hcl',
+              truncated,
+              '```',
+              '',
+              '</details>',
+            ].join('\n');
+
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
